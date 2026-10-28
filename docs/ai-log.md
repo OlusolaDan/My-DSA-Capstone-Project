@@ -13,14 +13,9 @@ Every time you give an AI tool a significant prompt, add an entry. Three lines e
 ## Build 2
 
 ### Prompt 1: Build 2 prompt (docs/build-2.md)
-- **What I asked:**
-- **What came back:**
-- **What was wrong (or "nothing"):**
-
-### Prompt 2:
-- **What I asked:**
-- **What came back:**
-- **What was wrong (or "nothing"):**
+- **What I asked:** Create a stable non-mutating merge sort, pure event filtering, sorting, and search in, then tests covering the build 2 acceptance criteria and npm test script. 
+- **What came back:** sorting.js, inventory.js, and eventSearch.js and npm test script
+- **What was wrong (or "nothing"):** I ran "npm test", node --iput and I got = [ 'b', 'a', 'c' ] [ 'a', 'b', 'c' ] true
 
 ## Build 3
 
