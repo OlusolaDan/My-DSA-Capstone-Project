@@ -1,0 +1,9 @@
+{
+  "name": "event-ticketing-capstone",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "demo": "node scripts/demo.js",
+    "benchmark": "node scripts/benchmark-lookup.js"
+  }
+}
