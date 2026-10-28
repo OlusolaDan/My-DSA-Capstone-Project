@@ -13,9 +13,9 @@ Every time you give an AI tool a significant prompt, add an entry. Three lines e
 ## Build 2
 
 ### Prompt 1: Build 2 prompt (docs/build-2.md)
-- **What I asked:** Create a stable non-mutating merge sort, pure event filtering, sorting, and search in, then tests covering the build 2 acceptance criteria and npm test script. 
-- **What came back:** sorting.js, inventory.js, and eventSearch.js and npm test script
-- **What was wrong (or "nothing"):** I ran "npm test", node --iput and I got = [ 'b', 'a', 'c' ] [ 'a', 'b', 'c' ] true
+- **What I asked:** Build a stable, non-mutating merge sort; event publishing and summaries; pure event filtering, sorting, and search; acceptance-criteria tests; and an `npm test` script.
+- **What came back:** Implementations in `sorting.js`, `inventory.js`, and `eventSearch.js`, plus tests and the npm script.
+- **What was wrong (or "nothing"):** S04's three acceptance criteria were still a placeholder in the Build 2 brief, so I wrote criteria for publication without tiers, publishing with tiers, and hiding drafts. `npm test` then passed all 21 tests.
 
 ## Build 3
 
@@ -23,3 +23,10 @@ Every time you give an AI tool a significant prompt, add an entry. Three lines e
 - **What I asked:** Add the architecture diagrams, booking state machine, Node HTTP router/server, configuration, startup script, and tests.
 - **What came back:** A layered architecture document, explicit booking transitions, static-file HTTP server, `/health` route, startup configuration, and `node:test` coverage.
 - **What was wrong (or "nothing"):** The first server draft relied on an implicit response/request property for HEAD handling and had redundant error-status logic; both were simplified. Added a regression test proving static requests cannot escape `public/`.
+
+## Build 4
+
+### Prompt 1: Build 4 prompt (docs/build-4.md)
+- **What I asked:** Build an in-memory REST API with async repositories, injected services, mock payments, event and booking routes, curl examples, and real-server API tests.
+- **What came back:** Repository, event and booking services, mock payment gateway, API routes, a composed server, curl examples, and passing end-to-end HTTP tests.
+- **What was wrong (or "nothing"):** The first cancellation implementation followed the shared state machine and allowed `paid` bookings to be cancelled, but Build 4 permits cancellation only while pending. The API test exposed this; I added the endpoint rule and return `INVALID_TRANSITION` with HTTP 409.
