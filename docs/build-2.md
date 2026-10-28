@@ -38,6 +38,10 @@
 
 *Written by you, in pairs, during the Build 2 class. Add your three criteria here before you paste the AI prompt below.*
 
+- **Given** an event with no ticket tiers **When** the organizer publishes it **Then** the request is rejected with `INVALID_STATE` and it remains a draft.
+- **Given** a draft event with at least one tier **When** the organizer publishes it **Then** it is marked published and appears in the public event list.
+- **Given** a draft event **When** the public event list is requested **Then** it is hidden by default, while an organizer can request summaries including drafts.
+
 ### S05: As an attendee, I want to search, filter and sort published events, so that I can find one I like
 
 - **Given** events titled "Lagos Tech Meetup" and "Abuja Jazz Night"

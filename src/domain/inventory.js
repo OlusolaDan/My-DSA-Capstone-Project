@@ -51,6 +51,25 @@ export function addTier(store, eventId, details) {
   return tier;
 }
 
+export function publishEvent(store, eventId) {
+  if (!store || !(store.events instanceof Map)) invalid('A valid store is required');
+  const event = get(store.events, eventId, 'Event');
+  if (event.tiers.size === 0) throw new DomainError('INVALID_STATE', 'An event must have at least one ticket tier before publishing');
+  event.status = 'published';
+  return event;
+}
+
+export function listEventSummaries(store, { publishedOnly = true } = {}) {
+  if (!store || !(store.events instanceof Map)) invalid('A valid store is required');
+  return [...store.events.values()]
+    .filter((event) => !publishedOnly || event.status === 'published')
+    .map((event) => ({
+      id: event.id, title: event.title, city: event.city, venue: event.venue,
+      date: event.date, status: event.status,
+      tiers: [...event.tiers.values()].map((tier) => ({ ...tier })),
+    }));
+}
+
 export function bookTickets(store, tierId, attendeeName, quantity) {
   if (!store || !(store.tiers instanceof Map) || !(store.bookingsByReference instanceof Map)) invalid('A valid store is required');
   const tier = get(store.tiers, tierId, 'Tier');
