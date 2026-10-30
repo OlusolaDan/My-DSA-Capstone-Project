@@ -45,7 +45,8 @@ test('S04: publishing without tiers rejects and leaves the event a draft', () =>
   rejectsCode(() => publishEvent(store, event.id), 'INVALID_STATE'); assert.equal(event.status, 'draft');
 });
 test('S04: publishing an event with tiers exposes it in public summaries', () => {
-  const store = createStore(); const event = create(store, 'Show');
+  const store = createStore();
+  const event = create(store, 'Show');
   addTier(store, event.id, { name: 'General', priceCents: 100, capacity: 3 });
   assert.equal(publishEvent(store, event.id).status, 'published');
   assert.equal(listEventSummaries(store)[0].id, event.id);
