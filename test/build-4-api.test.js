@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { createApplication } from '../src/server.js';
 
-async function start() {
-  const app = createApplication();
+async function start(options = {}) {
+  const app = createApplication(options);
   app.listen(0, '127.0.0.1');
   await once(app, 'listening');
   return { app, base: `http://127.0.0.1:${app.address().port}` };
@@ -23,12 +23,89 @@ test('REST API creates, publishes, searches, books, declines and pays through th
     assert.equal((await response.json()).status, 'published');
     response = await fetch(`${base}/api/events?q=TECH&city=lagos&maxPriceCents=3000&sortBy=price`);
     assert.equal((await response.json())[0].id, event.id);
+    response = await fetch(`${base}/api/events?onlyAvailable=sometimes`);
+    assert.equal(response.status, 400);
+    assert.deepEqual((await response.json()).error, {
+      code: 'VALIDATION',
+      message: 'onlyAvailable must be true or false',
+    });
     response = await fetch(`${base}/api/bookings`, json('POST', { tierId: tier.id, quantity: 2 }));
     assert.equal(response.status, 201); let booking = await response.json(); assert.equal(booking.status, 'pending');
     response = await fetch(`${base}/api/bookings/${booking.reference}/pay`, json('POST', { decline: true }));
     assert.equal(response.status, 402); assert.deepEqual(await response.json(), { error: { code: 'PAYMENT_DECLINED', message: 'Mock payment was declined' } });
     response = await fetch(`${base}/api/bookings/${booking.reference}/pay`, json('POST', { decline: false }));
     assert.equal((await response.json()).status, 'paid');
+  } finally { app.close(); await once(app, 'close'); }
+});
+
+test('API maps domain conflicts to 409 and prevents paying a booking more than once', async () => {
+  let charges = 0;
+  const { app, base } = await start({
+    paymentGateway: {
+      async charge() {
+        charges += 1;
+        return { success: true };
+      },
+    },
+  });
+  try {
+    const organizer = { 'content-type': 'application/json', 'x-user-id': 'organizer' };
+    let response = await fetch(`${base}/api/events`, {
+      method: 'POST',
+      headers: organizer,
+      body: JSON.stringify({ title: 'Show', city: 'Lagos', venue: 'Hall', date: '2026-12-05' }),
+    });
+    const event = await response.json();
+
+    response = await fetch(`${base}/api/events/${event.id}/publish`, {
+      method: 'POST',
+      headers: { 'x-user-id': 'organizer' },
+    });
+    assert.equal(response.status, 409);
+    assert.equal((await response.json()).error.code, 'INVALID_STATE');
+
+    response = await fetch(`${base}/api/events/${event.id}/tiers`, {
+      method: 'POST',
+      headers: organizer,
+      body: JSON.stringify({ name: 'General', priceCents: 700, capacity: 1 }),
+    });
+    const tier = await response.json();
+    await fetch(`${base}/api/events/${event.id}/publish`, {
+      method: 'POST',
+      headers: { 'x-user-id': 'organizer' },
+    });
+
+    response = await fetch(`${base}/api/bookings`, json('POST', { tierId: tier.id, quantity: 1 }));
+    const cancelledBooking = await response.json();
+    response = await fetch(`${base}/api/bookings`, json('POST', { tierId: tier.id, quantity: 1 }));
+    assert.equal(response.status, 409);
+    assert.deepEqual((await response.json()).error, {
+      code: 'SOLD_OUT',
+      message: 'Not enough seats remain',
+    });
+
+    response = await fetch(`${base}/api/bookings/${cancelledBooking.reference}/cancel`, {
+      method: 'POST',
+      headers: { 'x-user-id': 'attendee-1' },
+    });
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).status, 'cancelled');
+
+    response = await fetch(`${base}/api/bookings/${cancelledBooking.reference}/pay`, json('POST', {}));
+    assert.equal(response.status, 409);
+    assert.equal((await response.json()).error.code, 'INVALID_TRANSITION');
+    assert.equal(charges, 0);
+
+    response = await fetch(`${base}/api/bookings`, json('POST', { tierId: tier.id, quantity: 1 }));
+    const booking = await response.json();
+    response = await fetch(`${base}/api/bookings/${booking.reference}/pay`, json('POST', {}));
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).status, 'paid');
+
+    response = await fetch(`${base}/api/bookings/${booking.reference}/pay`, json('POST', {}));
+    assert.equal(response.status, 409);
+    assert.equal((await response.json()).error.code, 'INVALID_TRANSITION');
+    assert.equal(charges, 1);
   } finally { app.close(); await once(app, 'close'); }
 });
 

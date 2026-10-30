@@ -1,3 +1,4 @@
+import { DomainError } from '../domain/errors.js';
 import { createRouter } from './router.js';
 import { createEventService } from '../services/eventService.js';
 import { createBookingService } from '../services/bookingService.js';
@@ -11,7 +12,13 @@ function queryCriteria(query) {
     const raw = query.get('maxPriceCents');
     criteria.maxPriceCents = /^\d+$/.test(raw) ? Number(raw) : Number.NaN;
   }
-  if (query.has('onlyAvailable')) criteria.onlyAvailable = query.get('onlyAvailable') === 'true';
+  if (query.has('onlyAvailable')) {
+    const raw = query.get('onlyAvailable');
+    if (raw !== 'true' && raw !== 'false') {
+      throw new DomainError('VALIDATION', 'onlyAvailable must be true or false');
+    }
+    criteria.onlyAvailable = raw === 'true';
+  }
   return criteria;
 }
 

@@ -100,3 +100,9 @@ any rule from this prompt that you were unsure about.
 The Definition of done in [user-stories.md](user-stories.md) applies to every story in this build.
 
 [All milestones](milestones.md) · [Build 3](build-3.md) · [Build 5](build-5.md)
+
+
+curl.exe -i -X POST "http://localhost:3000/api/events" `
+  -H "Content-Type: application/json" `
+  -H "x-user-id: organiser-1" `
+  -d '{"title":"Lagos Tech Night","date":"2026-12-05T18:00:00Z","venue":"Landmark Centre","city":"Lagos"}'

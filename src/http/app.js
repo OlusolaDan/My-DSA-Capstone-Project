@@ -72,7 +72,7 @@ export function createApp({ publicDir = defaultPublicDir, router = createRouter(
       const status = safeError.code === 'NOT_FOUND' ? 404
         : safeError.code === 'FORBIDDEN' ? 403
           : safeError.code === 'PAYMENT_DECLINED' ? 402
-            : safeError.code === 'INVALID_TRANSITION' ? 409
+            : ['CONFLICT', 'INVALID_STATE', 'INVALID_TRANSITION', 'SOLD_OUT'].includes(safeError.code) ? 409
             : safeError.code === 'VALIDATION' || safeError.code === 'BAD_JSON' ? 400 : 500;
       return sendJson(response, status, { error: { code: safeError.code, message: safeError.message } });
     }
