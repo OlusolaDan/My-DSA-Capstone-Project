@@ -16,11 +16,9 @@ export function createBookingService(repository, paymentGateway) {
       const tier = await repository.getTier(tierId);
       const event = await repository.getEvent(tier.eventId);
       if (event.status !== 'published') throw new DomainError('INVALID_STATE', 'Tickets can only be booked for a published event');
-      if (tier.seatsLeft < quantity) throw new DomainError('SOLD_OUT', 'Not enough seats remain');
       const totalCents = tier.priceCents * quantity;
       if (!Number.isSafeInteger(totalCents)) throw new DomainError('VALIDATION', 'Booking total exceeds the supported whole-cent range');
-      tier.seatsLeft -= quantity; tier.sold += quantity;
-      await repository.updateTier(tier);
+      await repository.reserveTierSeats(tierId, quantity);
       return repository.createBooking({ id: newId(), reference: newReference(), eventId: event.id, tierId, userId, quantity, totalCents, status: 'pending' });
     },
     async pay(reference, userId, { decline = false } = {}) {

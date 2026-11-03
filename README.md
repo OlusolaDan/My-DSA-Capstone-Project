@@ -134,6 +134,13 @@ Follow the "Done when" list in [docs/build-1.md](docs/build-1.md). Work on a bra
 - [docs/build-1.md](docs/build-1.md) to [docs/build-9.md](docs/build-9.md): one file per Build, with its deliverables and its user stories with acceptance criteria.
 - [docs/user-stories.md](docs/user-stories.md): the product backlog and the definition of done.
 
+## Build 5: SQLite
+
+Run `npm run seed` once to add sample event data, then `npm start` to run the API
+with SQLite persistence. The default database is `data/ticketing.sqlite`; set
+`DATABASE_PATH` to use a different file. Run `npm run oversell` to reproduce
+the last-seat race with 50 concurrent booking requests.
+
 ## Rules of the road
 
 - Work on a branch called `build-N`, open a pull request, merge to `main`. Do not push straight to `main`.

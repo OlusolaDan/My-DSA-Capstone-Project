@@ -47,6 +47,15 @@ export function createMemoryRepository() {
       return tier;
     },
 
+    async reserveTierSeats(tierId, quantity) {
+      const tier = tiers.get(tierId);
+      if (!tier) missing('Tier');
+      if (tier.sold + quantity > tier.capacity) throw new DomainError('SOLD_OUT', 'Not enough seats remain');
+      tier.sold += quantity;
+      tier.seatsLeft = tier.capacity - tier.sold;
+      return tier;
+    },
+
     async createBooking(booking) {
       if (bookingsByReference.has(booking.reference)) throw new DomainError('CONFLICT', 'Booking reference already exists');
       bookings.set(booking.id, booking); bookingsByReference.set(booking.reference, booking.id); return booking;
