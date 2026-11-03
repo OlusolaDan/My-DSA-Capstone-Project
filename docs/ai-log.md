@@ -30,3 +30,21 @@ Every time you give an AI tool a significant prompt, add an entry. Three lines e
 - **What I asked:** Build an in-memory REST API with async repositories, injected services, mock payments, event and booking routes, curl examples, and real-server API tests.
 - **What came back:** Repository, event and booking services, mock payment gateway, API routes, a composed server, curl examples, and passing end-to-end HTTP tests.
 - **What was wrong:** The HTTP error mapper returned 500 for expected `INVALID_STATE` and `SOLD_OUT` errors; invalid `onlyAvailable` values were silently treated as false; and API tests did not verify unpaid cancellation, released inventory, or the already-paid retry rule. I mapped domain conflicts to 409, validated the query parameter, and added real-server regression coverage. Earlier, the first cancellation implementation followed the shared state machine and allowed `paid` bookings to be cancelled; Build 4 permits cancellation only while pending, so the service now returns `INVALID_TRANSITION` with HTTP 409.
+
+## Build 5
+
+### Prompt 1: move to SQLite and reproduce the problem
+- **What I asked:** Add a `node:sqlite` database and schema, a SQLite repository compatible with the existing services, an idempotent seed script, and a 50-request oversell demo. Persist server data across restarts, but do not fix overselling yet.
+
+- **What came back:** SQLite tables and parameterized repository methods, persistent server wiring, seed and oversell scripts, package commands, and repository tests. The demo began with one seat left and showed all 50 concurrent requests succeeding; the tier recorded 2 sold despite 51 total bookings including the initial booking.
+
+- **What was wrong (or "nothing"):** The first constraint test assumed SQLite would report a `CHECK` failure using an `ERR_SQLITE_CONSTRAINT_CHECK` code, but this Node runtime reports a general SQLite error with the check detail in its message. I corrected the assertion; the oversell behavior remains intentionally unfixed.
+
+
+
+### Prompt 2: fix it
+- **What I asked:** Reserve inventory with one conditional atomic SQLite update, reject failed reservations as `SOLD_OUT`, add a 50-request regression test, and rerun the oversell demo.
+
+- **What came back:** The booking service reserves seats through `reserveTierSeats`, using the conditional atomic SQLite update `UPDATE ticket_tiers SET sold = sold + ? WHERE id = ? AND sold + ? <= capacity`. The demo now reports 1 concurrent success, 49 `SOLD_OUT` responses, and 2/2 seats sold including the initial booking; the new regression test verifies the one-seat case, and all 31 tests pass.
+
+- **What was wrong (or "nothing"):** The first version of the updated demo used `Promise.all`, which would reject as soon as a request failed with `SOLD_OUT` instead of reporting the full batch. I changed it to `Promise.allSettled` and explicitly counted unexpected errors. A lock variable is process-local and cannot coordinate other database writers; checking twice still leaves a race between the availability check and the write, so the condition belongs in one atomic database update.

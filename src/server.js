@@ -1,6 +1,7 @@
 import { createApp } from './http/app.js';
 import { createApiRouter } from './http/apiRoutes.js';
 import { createMemoryRepository } from './repositories/memory.js';
+import { createSqliteRepository } from './repositories/sqlite.js';
 import { createMockPaymentGateway } from './lib/mockPaymentGateway.js';
 import { config } from './config.js';
 import { fileURLToPath } from 'node:url';
@@ -12,6 +13,6 @@ export function createApplication({ repository = createMemoryRepository(), payme
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const app = createApplication();
+  const app = createApplication({ repository: createSqliteRepository() });
   app.listen(config.port, () => console.log(`Event ticketing server listening on port ${config.port}`));
 }

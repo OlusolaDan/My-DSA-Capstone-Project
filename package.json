@@ -5,6 +5,8 @@
   "scripts": {
     "demo": "node scripts/demo.js",
     "benchmark": "node scripts/benchmark-lookup.js",
+    "seed": "node scripts/seed.js",
+    "oversell": "node scripts/oversell-demo.js",
     "test": "node --test",
     "start": "node src/server.js"
   }
