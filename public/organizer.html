@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5f2eb">
+    <title>Organizer dashboard | Gather</title>
+    <link rel="stylesheet" href="./css/styles.css">
+    <script type="module" src="./js/pages/organizer.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="./index.html" aria-label="Gather home">gather<span>.</span></a>
+      <nav aria-label="Main navigation">
+        <a href="./index.html">Explore</a>
+        <a href="./tickets.html">My tickets</a>
+        <a href="./login.html">Log in / Sign up</a>
+      </nav>
+    </header>
+    <main class="account-main">
+      <section class="account-intro">
+        <p class="eyebrow">Make it happen</p>
+        <h1>Organizer dashboard</h1>
+        <p>Create an event, add ticket tiers, and publish when it is ready.</p>
+      </section>
+      <div id="organizer-feedback" aria-live="polite"></div>
+      <section id="create-event-section" class="account-card" aria-labelledby="create-event-heading" hidden>
+        <h2 id="create-event-heading">Create an event</h2>
+        <form id="create-event-form" action="/api/events" method="post" aria-labelledby="create-event-heading">
+          <div class="field">
+            <label for="event-title">Event title</label>
+            <input id="event-title" name="title" type="text" required>
+          </div>
+          <div class="field">
+            <label for="event-city">City</label>
+            <input id="event-city" name="city" type="text" required>
+          </div>
+          <div class="field">
+            <label for="event-venue">Venue</label>
+            <input id="event-venue" name="venue" type="text" required>
+          </div>
+          <div class="field">
+            <label for="event-date">Date and time</label>
+            <input id="event-date" name="date" type="datetime-local" required>
+          </div>
+          <button class="button button-dark" type="submit">Create draft event</button>
+        </form>
+      </section>
+      <section id="organizer-events" class="organizer-events" aria-label="Events created this session"></section>
+    </main>
+    <footer class="site-footer">
+      <a class="brand" href="./index.html">gather<span>.</span></a>
+      <p>Make room for a good time.</p>
+    </footer>
+  </body>
+</html>

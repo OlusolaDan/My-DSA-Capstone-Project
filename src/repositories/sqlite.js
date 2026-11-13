@@ -44,6 +44,9 @@ export function createSqliteRepository(database = createConnection()) {
   const missing = (name) => { throw new DomainError('NOT_FOUND', `${name} not found`); };
   const statements = {
     insertUser: database.prepare('INSERT OR IGNORE INTO users (id) VALUES (?)'),
+    insertAuthUser: database.prepare('INSERT INTO users (id, email, password_hash, role) VALUES (?, ?, ?, ?)'),
+    getUserByEmail: database.prepare('SELECT id, email, password_hash, role FROM users WHERE email = ?'),
+    getUserById: database.prepare('SELECT id, email, password_hash, role FROM users WHERE id = ?'),
     insertEvent: database.prepare(
       'INSERT INTO events (id, organizer_id, title, city, venue, date, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
     ),
@@ -77,13 +80,45 @@ export function createSqliteRepository(database = createConnection()) {
     getBookingByReference: database.prepare(
       'SELECT id, reference, event_id, tier_id, user_id, quantity, total_cents, status FROM bookings WHERE reference = ?',
     ),
+    listBookingsForUser: database.prepare(
+      'SELECT id, reference, event_id, tier_id, user_id, quantity, total_cents, status FROM bookings WHERE user_id = ? ORDER BY rowid DESC',
+    ),
     updateBooking: database.prepare(
       'UPDATE bookings SET reference = ?, event_id = ?, tier_id = ?, user_id = ?, quantity = ?, total_cents = ?, status = ? WHERE id = ?',
     ),
   };
   const ensureUser = (id) => statements.insertUser.run(id);
+  const userFromRow = (row) => row ? ({
+    id: row.id,
+    email: row.email,
+    passwordHash: row.password_hash,
+    role: row.role,
+  }) : null;
 
   return {
+    async createUser(user) {
+      if (statements.getUserByEmail.get(user.email)) {
+        throw new DomainError('EMAIL_TAKEN', 'An account with this email already exists');
+      }
+      try {
+        statements.insertAuthUser.run(user.id, user.email, user.passwordHash, user.role);
+      } catch (error) {
+        if (error.message?.includes('users.email')) {
+          throw new DomainError('EMAIL_TAKEN', 'An account with this email already exists');
+        }
+        throwConstraint(error);
+      }
+      return user;
+    },
+
+    async getUserByEmail(email) {
+      return userFromRow(statements.getUserByEmail.get(email));
+    },
+
+    async getUserById(id) {
+      return userFromRow(statements.getUserById.get(id));
+    },
+
     async createEvent(event) {
       try {
         ensureUser(event.organizerId);
@@ -167,6 +202,10 @@ export function createSqliteRepository(database = createConnection()) {
       const row = statements.getBookingByReference.get(reference);
       if (!row) missing('Booking');
       return bookingFromRow(row);
+    },
+
+    async listBookingsForUser(userId) {
+      return statements.listBookingsForUser.all(userId).map(bookingFromRow);
     },
 
     async updateBooking(booking) {

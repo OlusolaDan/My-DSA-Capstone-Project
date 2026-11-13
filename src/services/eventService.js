@@ -11,7 +11,7 @@ const requiredText = (value, name) => {
 export function createEventService(repository) {
   return {
     async create(details, userId) {
-      requiredText(userId, 'x-user-id');
+      requiredText(userId, 'userId');
       if (!details || typeof details !== 'object' || Array.isArray(details)) validation('Event details are required');
       const title = requiredText(details.title, 'title');
       const city = requiredText(details.city, 'city');
@@ -23,7 +23,7 @@ export function createEventService(repository) {
       return repository.createEvent({ id: newId(), organizerId: userId, title, city, venue, date: details.date, status: 'draft' });
     },
     async addTier(eventId, details, userId) {
-      requiredText(userId, 'x-user-id');
+      requiredText(userId, 'userId');
       const event = await repository.getEvent(eventId);
       if (event.organizerId !== userId) throw new DomainError('FORBIDDEN', 'Only the event organizer can add tiers');
       if (!details || typeof details !== 'object' || Array.isArray(details)) validation('Tier details are required');
@@ -33,7 +33,7 @@ export function createEventService(repository) {
       return repository.createTier({ id: newId(), eventId, name, priceCents: details.priceCents, capacity: details.capacity, sold: 0, seatsLeft: details.capacity });
     },
     async publish(eventId, userId) {
-      requiredText(userId, 'x-user-id');
+      requiredText(userId, 'userId');
       const event = await repository.getEvent(eventId);
       if (event.organizerId !== userId) throw new DomainError('FORBIDDEN', 'Only the event organizer can publish it');
       if ((await repository.listTiersForEvent(eventId)).length === 0) throw new DomainError('INVALID_STATE', 'An event must have at least one ticket tier before publishing');
@@ -43,6 +43,11 @@ export function createEventService(repository) {
       const events = (await repository.listEvents()).filter((event) => event.status === 'published');
       const summaries = await Promise.all(events.map(async (event) => ({ ...event, tiers: await repository.listTiersForEvent(event.id) })));
       return sortEvents(filterEvents(summaries, criteria), sortBy);
+    },
+    async getPublic(eventId) {
+      const event = await repository.getEvent(eventId);
+      if (event.status !== 'published') throw new DomainError('NOT_FOUND', 'Event not found');
+      return { ...event, tiers: await repository.listTiersForEvent(event.id) };
     },
   };
 }

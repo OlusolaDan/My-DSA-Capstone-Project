@@ -1,4 +1,5 @@
 import { createBooking, getEvent, pay } from '../api.js';
+import { getToken } from '../session.js';
 import { el, formatEventDate, formatPrice } from '../ui.js';
 
 const eventRoot = document.querySelector('#event-detail');
@@ -8,7 +9,8 @@ const eventId = new URLSearchParams(window.location.search).get('id');
 let countdownTimer;
 
 function showError(container, message) {
-  container.replaceChildren(el('p', { className: 'error-message', role: 'alert' }, message));
+  container.querySelector('[role="alert"]')?.remove();
+  container.append(el('p', { className: 'error-message', role: 'alert' }, message));
 }
 
 function tierCard(tier) {
@@ -27,7 +29,7 @@ function tierCard(tier) {
   const status = soldOut
     ? el('span', { className: 'status-pill sold-out' }, 'Sold out')
     : el('span', { className: 'seats-remaining' }, `${tier.seatsLeft} ${tier.seatsLeft === 1 ? 'seat' : 'seats'} left`);
-  const form = el('form', { className: 'tier-booking-form' }, [
+  const form = el('form', { className: 'tier-booking-form', action: '/api/bookings', method: 'post' }, [
     el('div', { className: 'quantity-field' }, [quantityLabel, quantity]),
     el('button', { className: 'button button-dark', type: 'submit', disabled: soldOut }, soldOut ? 'Sold out' : 'Reserve seats'),
   ]);
@@ -37,6 +39,11 @@ function tierCard(tier) {
     const requested = Number(quantity.value);
     if (!Number.isSafeInteger(requested) || requested < 1 || requested > Math.min(10, tier.seatsLeft)) {
       showError(form, `Choose between 1 and ${Math.min(10, tier.seatsLeft)} tickets.`);
+      return;
+    }
+    if (!getToken()) {
+      showError(form, 'Log in with an attendee account before reserving tickets.');
+      form.append(el('a', { href: `./login.html?next=${encodeURIComponent(`/event.html?id=${eventId}`)}` }, 'Log in'));
       return;
     }
     form.querySelector('[role="alert"]')?.remove();
@@ -65,11 +72,11 @@ function tierCard(tier) {
 
 function renderCheckout(booking, tierName) {
   checkout.hidden = false;
-  const expiresAt = Date.parse(booking.holdExpiresAt);
+  const expiresAt = booking.holdExpiresAt ? Date.parse(booking.holdExpiresAt) : null;
   const countdown = el('p', { className: 'hold-countdown', role: 'status', 'aria-live': 'polite' });
   const errorRegion = el('div', { className: 'checkout-feedback' });
   const expiredLink = el('a', { className: 'button button-quiet', href: `./event.html?id=${encodeURIComponent(booking.eventId)}` }, 'Choose tickets again');
-  const form = el('form', { className: 'checkout-form' });
+  const form = el('form', { className: 'checkout-form', action: `/api/bookings/${encodeURIComponent(booking.reference)}/pay`, method: 'post' });
   const decline = el('input', { id: 'simulate-decline', name: 'decline', type: 'checkbox' });
   const declineLabel = el('label', { htmlFor: decline.id }, 'Simulate a declined card (demo only)');
   const payButton = el('button', { className: 'button button-primary', type: 'submit' }, `Pay ${formatPrice(booking.totalCents)}`);
@@ -83,6 +90,11 @@ function renderCheckout(booking, tierName) {
   );
 
   const updateCountdown = () => {
+    if (expiresAt === null) {
+      countdown.textContent = 'Complete payment to confirm your booking.';
+      expiredLink.hidden = true;
+      return;
+    }
     const remaining = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
     const minutes = Math.floor(remaining / 60);
     const seconds = String(remaining % 60).padStart(2, '0');
@@ -99,10 +111,15 @@ function renderCheckout(booking, tierName) {
 
   updateCountdown();
   clearInterval(countdownTimer);
-  countdownTimer = setInterval(updateCountdown, 1000);
+  if (expiresAt !== null) countdownTimer = setInterval(updateCountdown, 1000);
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     errorRegion.replaceChildren();
+    if (!getToken()) {
+      showError(errorRegion, 'Log in with an attendee account before paying.');
+      errorRegion.append(el('a', { href: `./login.html?next=${encodeURIComponent(`/event.html?id=${booking.eventId}`)}` }, 'Log in'));
+      return;
+    }
     payButton.disabled = true;
     try {
       const paid = await pay(booking.reference, { decline: decline.checked });
@@ -117,9 +134,9 @@ function renderCheckout(booking, tierName) {
       );
     } catch (error) {
       showError(errorRegion, error.message);
-      payButton.disabled = Date.now() >= expiresAt;
+      payButton.disabled = expiresAt !== null && Date.now() >= expiresAt;
     } finally {
-      if (!checkoutContent.querySelector('.payment-success') && Date.now() < expiresAt) {
+      if (!checkoutContent.querySelector('.payment-success') && (expiresAt === null || Date.now() < expiresAt)) {
         payButton.disabled = false;
       }
     }
@@ -135,6 +152,7 @@ function renderCheckout(booking, tierName) {
 }
 
 async function renderEvent() {
+  eventRoot.replaceChildren(el('p', { className: 'loading-message', role: 'status' }, 'Loading event details…'));
   if (!eventId) {
     eventRoot.replaceChildren(el('p', { className: 'error-message', role: 'alert' }, 'No event was selected.'));
     eventRoot.setAttribute('aria-busy', 'false');
