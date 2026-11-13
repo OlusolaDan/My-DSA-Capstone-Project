@@ -37,7 +37,7 @@ S02 to S04 get organizer screens, with the criteria from Build 2.
 
 - **Given** attendee A has a booking
   **When** attendee B asks for it
-  **Then** the request is rejected with `FORBIDDEN`.
+  **Then** the request is rejected with `NOT_FOUND`, so the API does not reveal that the booking exists.
 - **Given** an attendee
   **When** they ask for the list of bookings
   **Then** only their own bookings are returned.

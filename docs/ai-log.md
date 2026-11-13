@@ -55,3 +55,10 @@ Every time you give an AI tool a significant prompt, add an entry. Three lines e
 - **What I asked:** Build the mock-data event browser and checkout in plain HTML, CSS, and browser JavaScript modules, including filters, sold-out tiers, a hold countdown, and retryable mock payments.
 - **What came back:** Two pages, a safe DOM helper, mock API and data modules, responsive styles, and tests for browse, booking, and payment behavior.
 - **What was wrong (or "nothing"):** The first API draft imported the existing search module from outside `public/`; the static server correctly does not serve that path. I moved the needed filtering and sorting into the browser API module and verified the complete flow in the browser, including a declined payment retry. The hold duration was not specified, so I used a 10-minute mock hold.
+
+## Build 7
+
+### Prompt 1: Build 7 prompt (docs/build-7.md)
+- **What I asked:** Add signup and login with password hashing, HS256 bearer tokens, role-based authorization, per-user booking privacy, and the browser-connected auth flow.
+- **What came back:** Password hashing in `src/lib/password.js`, token signing and verification in `src/lib/token.js`, auth service/routes, guarded API routes, and a connected browser auth flow.
+- **What was wrong:** The working tree had a corrupted `test/build-7-auth.test.js` file containing NUL bytes, and the AI log itself had been partially overwritten in the same way. I restored the build-7 auth tests and the AI log from the repository version, then reran the full `npm test` suite; the implementation was already correct and the project passes cleanly under the Build 7 requirements.

@@ -10,7 +10,7 @@ const requiredText = (value, name) => {
 export function createBookingService(repository, paymentGateway) {
   return {
     async book({ tierId, quantity }, userId) {
-      userId = requiredText(userId, 'x-user-id');
+      userId = requiredText(userId, 'userId');
       requiredText(tierId, 'tierId');
       if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > 10) throw new DomainError('VALIDATION', 'quantity must be a whole number from 1 to 10');
       const tier = await repository.getTier(tierId);
@@ -22,9 +22,9 @@ export function createBookingService(repository, paymentGateway) {
       return repository.createBooking({ id: newId(), reference: newReference(), eventId: event.id, tierId, userId, quantity, totalCents, status: 'pending' });
     },
     async pay(reference, userId, { decline = false } = {}) {
-      userId = requiredText(userId, 'x-user-id');
+      userId = requiredText(userId, 'userId');
       const booking = await repository.getBookingByReference(requiredText(reference, 'reference'));
-      if (booking.userId !== userId) throw new DomainError('FORBIDDEN', 'Only the attendee who made the booking can pay for it');
+      if (booking.userId !== userId) throw new DomainError('NOT_FOUND', 'Booking not found');
       assertTransition(booking.status, 'paid');
       const result = await paymentGateway.charge({ amountCents: booking.totalCents, decline: Boolean(decline) });
       if (!result.success) throw new DomainError('PAYMENT_DECLINED', 'Mock payment was declined');
@@ -32,9 +32,9 @@ export function createBookingService(repository, paymentGateway) {
       return repository.updateBooking(booking);
     },
     async cancel(reference, userId) {
-      userId = requiredText(userId, 'x-user-id');
+      userId = requiredText(userId, 'userId');
       const booking = await repository.getBookingByReference(requiredText(reference, 'reference'));
-      if (booking.userId !== userId) throw new DomainError('FORBIDDEN', 'Only the attendee who made the booking can cancel it');
+      if (booking.userId !== userId) throw new DomainError('NOT_FOUND', 'Booking not found');
       if (booking.status !== 'pending') throw new DomainError('INVALID_TRANSITION', 'Only pending bookings can be cancelled in this build');
       assertTransition(booking.status, 'cancelled');
       booking.status = 'cancelled'; await repository.updateBooking(booking);
@@ -42,6 +42,14 @@ export function createBookingService(repository, paymentGateway) {
       tier.sold -= booking.quantity; tier.seatsLeft += booking.quantity;
       await repository.updateTier(tier);
       return booking;
+    },
+    async getForUser(reference, userId) {
+      const booking = await repository.getBookingByReference(requiredText(reference, 'reference'));
+      if (booking.userId !== userId) throw new DomainError('NOT_FOUND', 'Booking not found');
+      return booking;
+    },
+    async listForUser(userId) {
+      return repository.listBookingsForUser(userId);
     },
   };
 }

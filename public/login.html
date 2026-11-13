@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5f2eb">
+    <title>Log in or sign up | Gather</title>
+    <link rel="stylesheet" href="./css/styles.css">
+    <script type="module" src="./js/pages/auth.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="./index.html" aria-label="Gather home">gather<span>.</span></a>
+      <nav aria-label="Main navigation">
+        <a href="./index.html">Explore</a>
+        <a href="./tickets.html">My tickets</a>
+        <a href="./organizer.html">Organizer</a>
+      </nav>
+    </header>
+    <main class="account-main">
+      <section class="account-intro">
+        <p class="eyebrow">Welcome to Gather</p>
+        <h1>Your next good thing starts here.</h1>
+        <p>Sign in to manage your tickets, or create an account to get started.</p>
+      </section>
+      <p class="account-feedback" id="account-feedback" role="status" aria-live="polite"></p>
+      <div class="account-grid">
+        <section class="account-card" aria-labelledby="login-heading">
+          <h2 id="login-heading">Log in</h2>
+          <form id="login-form" action="/api/auth/login" method="post" aria-labelledby="login-heading">
+            <div class="field">
+              <label for="login-email">Email</label>
+              <input id="login-email" name="email" type="email" autocomplete="username" spellcheck="false" required>
+            </div>
+            <div class="field">
+              <label for="login-password">Password</label>
+              <input id="login-password" name="password" type="password" autocomplete="current-password" maxlength="1024" required>
+            </div>
+            <button class="button button-dark" type="submit">Log in</button>
+          </form>
+        </section>
+        <section class="account-card" aria-labelledby="signup-heading">
+          <h2 id="signup-heading">Create an account</h2>
+          <form id="signup-form" action="/api/auth/signup" method="post" aria-labelledby="signup-heading">
+            <div class="field">
+              <label for="signup-email">Email</label>
+              <input id="signup-email" name="email" type="email" autocomplete="username" spellcheck="false" required>
+            </div>
+            <div class="field">
+              <label for="signup-password">Password (at least 8 characters)</label>
+              <input id="signup-password" name="password" type="password" minlength="8" maxlength="1024" autocomplete="new-password" required>
+            </div>
+            <div class="field">
+              <label for="signup-role">Account type</label>
+              <select id="signup-role" name="role" required>
+                <option value="attendee">Attendee</option>
+                <option value="organizer">Organizer</option>
+                <option value="staff">Staff</option>
+              </select>
+            </div>
+            <button class="button button-primary" type="submit">Sign up</button>
+          </form>
+        </section>
+      </div>
+    </main>
+    <footer class="site-footer">
+      <a class="brand" href="./index.html">gather<span>.</span></a>
+      <p>Make room for a good time.</p>
+    </footer>
+  </body>
+</html>

@@ -1,140 +1,93 @@
-import { events } from './mockData.js';
+import { getToken } from './session.js';
 
-const HOLD_DURATION_MS = 10 * 60 * 1000;
-const bookings = new Map();
-let nextBookingId = 1;
-
-export class MockApiError extends Error {
-  constructor(code, message) {
+export class ApiError extends Error {
+  constructor(code, message, status) {
     super(message);
-    this.name = 'MockApiError';
+    this.name = 'ApiError';
     this.code = code;
-  }
-
-  toJSON() {
-    return { error: { code: this.code, message: this.message } };
+    this.status = status;
   }
 }
 
-function error(code, message) {
-  throw new MockApiError(code, message);
-}
+async function request(path, { method = 'GET', body } = {}) {
+  const headers = { accept: 'application/json' };
+  if (body !== undefined) headers['content-type'] = 'application/json';
+  const token = getToken();
+  if (token) headers.authorization = `Bearer ${token}`;
 
-function copyEvent(event) {
-  return { ...event, tiers: event.tiers.map((tier) => ({ ...tier })) };
-}
-
-function filterAndSort(eventsToSearch, criteria) {
-  const { q = '', city = '', from, to, maxPriceCents, onlyAvailable } = criteria;
-  if (maxPriceCents !== undefined && (!Number.isSafeInteger(maxPriceCents) || maxPriceCents < 0)) {
-    error('VALIDATION', 'maxPriceCents must be a whole non-negative number');
-  }
-  const query = typeof q === 'string' ? q.trim().toLocaleLowerCase() : '';
-  const wantedCity = typeof city === 'string' ? city.trim().toLocaleLowerCase() : '';
-  const filtered = eventsToSearch.filter((event) => {
-    if (query && !`${event.title} ${event.venue}`.toLocaleLowerCase().includes(query)) return false;
-    if (wantedCity && event.city.toLocaleLowerCase() !== wantedCity) return false;
-    if (from && event.date < from) return false;
-    if (to && event.date > (to.length === 10 ? `${to}T23:59:59.999Z` : to)) return false;
-    if (maxPriceCents !== undefined) {
-      const cheapest = Math.min(...event.tiers.map((tier) => tier.priceCents));
-      if (event.tiers.length === 0 || cheapest > maxPriceCents) return false;
-    }
-    if (onlyAvailable && event.tiers.every((tier) => tier.seatsLeft <= 0)) return false;
-    return true;
+  const response = await fetch(path, {
+    method,
+    headers,
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
-  const sortBy = criteria.sortBy ?? 'date';
-  if (!['date', 'price', 'availability'].includes(sortBy)) error('VALIDATION', 'Unknown event sort option');
-  const cheapest = (event) => event.tiers.length ? Math.min(...event.tiers.map((tier) => tier.priceCents)) : null;
-  const seatsLeft = (event) => event.tiers.reduce((sum, tier) => sum + tier.seatsLeft, 0);
-  const compareText = (a, b) => String(a ?? '').localeCompare(String(b ?? ''));
-  const compare = (a, b) => {
-    let order = 0;
-    if (sortBy === 'date') order = compareText(a.date, b.date);
-    if (sortBy === 'price') {
-      const aPrice = cheapest(a);
-      const bPrice = cheapest(b);
-      order = aPrice === null || bPrice === null
-        ? aPrice === bPrice ? 0 : aPrice === null ? 1 : -1
-        : aPrice - bPrice;
-    }
-    if (sortBy === 'availability') order = seatsLeft(b) - seatsLeft(a);
-    return order || compareText(a.title, b.title) || compareText(a.id, b.id);
-  };
-  return filtered.sort(compare);
-}
-
-function expireHolds(now = Date.now()) {
-  for (const booking of bookings.values()) {
-    if (booking.status !== 'pending' || Date.parse(booking.holdExpiresAt) > now) continue;
-    booking.status = 'expired';
-    const tier = events.flatMap((event) => event.tiers).find((item) => item.id === booking.tierId);
-    if (tier) {
-      tier.sold -= booking.quantity;
-      tier.seatsLeft += booking.quantity;
-    }
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new ApiError(
+      payload.error?.code ?? 'HTTP_ERROR',
+      payload.error?.message ?? 'The request could not be completed',
+      response.status,
+    );
   }
+  return payload;
 }
 
-export async function listEvents(criteria = {}) {
-  expireHolds();
-  const published = events.filter((event) => event.status === 'published').map(copyEvent);
-  if (dateInvalid(criteria.from) || dateInvalid(criteria.to)) error('VALIDATION', 'Event dates must be valid ISO date strings');
-  return filterAndSort(published, criteria);
+export function signup(details) {
+  return request('/api/auth/signup', { method: 'POST', body: details });
 }
 
-function dateInvalid(value) {
-  if (value === undefined || value === '') return false;
-  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(value) || Number.isNaN(Date.parse(value))) return true;
-  const [year, month, day] = value.slice(0, 10).split('-').map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  return date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day;
+export function login(credentials) {
+  return request('/api/auth/login', { method: 'POST', body: credentials });
 }
 
-export async function getEvent(eventId) {
-  expireHolds();
-  const event = events.find((item) => item.id === eventId && item.status === 'published');
-  if (!event) error('NOT_FOUND', 'Event not found');
-  return copyEvent(event);
+export function me() {
+  return request('/api/auth/me');
 }
 
-export async function createBooking(tierId, quantity) {
-  expireHolds();
-  if (typeof tierId !== 'string' || !tierId) error('VALIDATION', 'tierId must be a non-empty string');
-  if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > 10) {
-    error('VALIDATION', 'quantity must be a whole number from 1 to 10');
+export function listEvents(criteria = {}) {
+  const query = new URLSearchParams();
+  for (const key of ['q', 'city', 'from', 'to', 'maxPriceCents', 'onlyAvailable', 'sortBy']) {
+    if (criteria[key] !== undefined && criteria[key] !== '') query.set(key, String(criteria[key]));
   }
-  const event = events.find((item) => item.tiers.some((tier) => tier.id === tierId));
-  if (!event || event.status !== 'published') error('NOT_FOUND', 'Ticket tier not found');
-  const tier = event.tiers.find((item) => item.id === tierId);
-  if (tier.seatsLeft < quantity) error('SOLD_OUT', 'Not enough seats remain');
-  const totalCents = tier.priceCents * quantity;
-  if (!Number.isSafeInteger(totalCents)) error('VALIDATION', 'Booking total exceeds the supported whole-cent range');
-
-  const id = `mock-booking-${nextBookingId++}`;
-  const booking = {
-    id,
-    reference: `MOCK-${String(nextBookingId - 1).padStart(6, '0')}`,
-    eventId: event.id,
-    tierId: tier.id,
-    userId: 'attendee-demo',
-    quantity,
-    totalCents,
-    status: 'pending',
-    holdExpiresAt: new Date(Date.now() + HOLD_DURATION_MS).toISOString(),
-  };
-  tier.sold += quantity;
-  tier.seatsLeft -= quantity;
-  bookings.set(booking.reference, booking);
-  return { ...booking };
+  const serialized = query.toString();
+  const suffix = serialized ? `?${serialized}` : '';
+  return request(`/api/events${suffix}`);
 }
 
-export async function pay(reference, { decline = false } = {}) {
-  expireHolds();
-  const booking = bookings.get(reference);
-  if (!booking) error('NOT_FOUND', 'Booking not found');
-  if (booking.status !== 'pending') error('INVALID_TRANSITION', 'Only pending bookings can be paid');
-  if (decline) error('PAYMENT_DECLINED', 'Mock payment was declined');
-  booking.status = 'paid';
-  return { ...booking };
+export function getEvent(eventId) {
+  return request(`/api/events/${encodeURIComponent(eventId)}`);
+}
+
+export function createBooking(tierId, quantity) {
+  return request('/api/bookings', { method: 'POST', body: { tierId, quantity } });
+}
+
+export function pay(reference, { decline = false } = {}) {
+  return request(`/api/bookings/${encodeURIComponent(reference)}/pay`, {
+    method: 'POST',
+    body: { decline },
+  });
+}
+
+export function listBookings() {
+  return request('/api/bookings');
+}
+
+export function getBooking(reference) {
+  return request(`/api/bookings/${encodeURIComponent(reference)}`);
+}
+
+export function cancelBooking(reference) {
+  return request(`/api/bookings/${encodeURIComponent(reference)}/cancel`, { method: 'POST' });
+}
+
+export function createEvent(details) {
+  return request('/api/events', { method: 'POST', body: details });
+}
+
+export function addTier(eventId, details) {
+  return request(`/api/events/${encodeURIComponent(eventId)}/tiers`, { method: 'POST', body: details });
+}
+
+export function publishEvent(eventId) {
+  return request(`/api/events/${encodeURIComponent(eventId)}/publish`, { method: 'POST' });
 }

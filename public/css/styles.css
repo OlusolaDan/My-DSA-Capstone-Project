@@ -224,10 +224,44 @@ a:focus-visible {
 .site-footer { border-top: 1px solid var(--line); color: var(--muted); }
 .site-footer p { margin: 0; font-size: .85rem; }
 
+.site-header nav { display: flex; flex-wrap: wrap; gap: 1.25rem; }
+.site-header nav a { white-space: nowrap; }
+.account-main { min-height: 70vh; padding: 3rem 0 5rem; }
+.account-intro { max-width: 680px; margin-bottom: 2rem; }
+.account-intro h1 { margin-bottom: .65rem; font-size: clamp(2.4rem, 6vw, 4rem); letter-spacing: -.07em; }
+.account-intro > p:last-child { color: var(--muted); }
+.account-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.account-card,
+.organizer-event-card,
+.booking-card { padding: clamp(1.1rem, 3vw, 1.6rem); border: 1px solid var(--line); border-radius: 1rem; background: var(--surface); }
+.account-card h2,
+.organizer-event-card h2,
+.booking-card h2 { font-size: 1.35rem; letter-spacing: -.04em; }
+.account-card form,
+.organizer-tier-form { display: grid; gap: 1rem; }
+.account-card .button { justify-self: start; }
+.account-feedback { margin-bottom: 1rem; }
+.success-message,
+.loading-message,
+.organizer-status { color: var(--green-dark); }
+.booking-list,
+.organizer-events { display: grid; gap: 1rem; }
+.booking-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+.booking-details div { padding: .8rem; border-radius: .65rem; background: #f5f2eb; }
+.booking-details dt { color: var(--muted); font-size: .75rem; }
+.booking-details dd { margin: .25rem 0 0; overflow-wrap: anywhere; font-weight: 700; }
+.organizer-tier-list { padding-left: 1.2rem; color: var(--muted); }
+.organizer-tier-form { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; margin: 1.25rem 0; }
+.organizer-tier-form[hidden],
+.button[hidden] { display: none; }
+.organizer-tier-form .button { justify-self: start; }
+.organizer-status { margin-bottom: 0; }
+
 @media (max-width: 900px) {
   .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .field-search { grid-column: 1 / -1; }
   .filter-actions { align-self: end; }
+  .organizer-tier-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 620px) {
@@ -249,6 +283,12 @@ a:focus-visible {
   .tier-booking-form .button { flex: 1; }
   .tier-details { align-items: start; }
   .site-footer { align-items: start; flex-direction: column; gap: .4rem; }
+  .site-header { align-items: start; flex-direction: column; gap: .8rem; }
+  .site-header nav { gap: .75rem; }
+  .account-grid,
+  .booking-details,
+  .organizer-tier-form { grid-template-columns: 1fr; }
+  .organizer-tier-form .button { width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {

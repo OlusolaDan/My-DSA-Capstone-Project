@@ -141,6 +141,22 @@ with SQLite persistence. The default database is `data/ticketing.sqlite`; set
 `DATABASE_PATH` to use a different file. Run `npm run oversell` to reproduce
 the last-seat race with 50 concurrent booking requests.
 
+## Build 7: authenticated API
+
+The server requires `AUTH_TOKEN_SECRET` to sign login tokens. Set it to a
+private random value of at least 32 bytes before running `npm start`; do not
+commit the value. For example, in PowerShell:
+
+```powershell
+$env:AUTH_TOKEN_SECRET = node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"
+npm start
+```
+
+Sign up or log in through `/api/auth/signup` or `/api/auth/login`. Send the
+returned token as `Authorization: Bearer <token>` to protected API routes.
+See [docs/api-examples.md](docs/api-examples.md) for signup, event, booking
+and payment examples.
+
 ## Rules of the road
 
 - Work on a branch called `build-N`, open a pull request, merge to `main`. Do not push straight to `main`.

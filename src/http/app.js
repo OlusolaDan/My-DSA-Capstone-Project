@@ -69,10 +69,11 @@ export function createApp({ publicDir = defaultPublicDir, router = createRouter(
       if (response.writableEnded) return;
       if (error instanceof DomainError && error.code === 'BAD_JSON') return sendJson(response, 400, { error: { code: error.code, message: error.message } });
       const safeError = error instanceof DomainError ? error : new DomainError('INTERNAL_ERROR', 'An unexpected error occurred');
-      const status = safeError.code === 'NOT_FOUND' ? 404
+      const status = ['UNAUTHENTICATED', 'INVALID_CREDENTIALS'].includes(safeError.code) ? 401
+        : safeError.code === 'NOT_FOUND' ? 404
         : safeError.code === 'FORBIDDEN' ? 403
           : safeError.code === 'PAYMENT_DECLINED' ? 402
-            : ['CONFLICT', 'INVALID_STATE', 'INVALID_TRANSITION', 'SOLD_OUT'].includes(safeError.code) ? 409
+            : ['CONFLICT', 'EMAIL_TAKEN', 'INVALID_STATE', 'INVALID_TRANSITION', 'SOLD_OUT'].includes(safeError.code) ? 409
             : safeError.code === 'VALIDATION' || safeError.code === 'BAD_JSON' ? 400 : 500;
       return sendJson(response, status, { error: { code: safeError.code, message: safeError.message } });
     }

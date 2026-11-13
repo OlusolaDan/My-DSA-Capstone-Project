@@ -82,7 +82,9 @@ Build a working REST API that keeps its data in memory.
    - POST /api/bookings (book tickets from a tier)
    - POST /api/bookings/:reference/pay (success, or PAYMENT_DECLINED)
    - POST /api/bookings/:reference/cancel (unpaid bookings only for now)
-   Until Build 7, the caller identifies themselves with an x-user-id header.
+   Build 4 temporarily identified callers with an x-user-id header; Build 7
+   replaces that shortcut with bearer-token authentication. Current examples
+   are in docs/api-examples.md.
 
 5. docs/api-examples.md: one curl example for every call, in the order
    create, publish, book, pay.

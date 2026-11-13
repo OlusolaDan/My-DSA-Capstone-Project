@@ -5,8 +5,23 @@ export function createMemoryRepository() {
   const tiers = new Map();
   const bookings = new Map();
   const bookingsByReference = new Map();
+  const users = new Map();
+  const usersByEmail = new Map();
   const missing = (name) => { throw new DomainError('NOT_FOUND', `${name} not found`); };
   return {
+    async createUser(user) {
+      if (usersByEmail.has(user.email)) throw new DomainError('EMAIL_TAKEN', 'An account with this email already exists');
+      users.set(user.id, user);
+      usersByEmail.set(user.email, user.id);
+      return user;
+    },
+    async getUserByEmail(email) {
+      const id = usersByEmail.get(email);
+      return id ? users.get(id) : null;
+    },
+    async getUserById(id) {
+      return users.get(id) ?? null;
+    },
     async createEvent(event) {
       events.set(event.id, event);
       return event;
@@ -64,6 +79,10 @@ export function createMemoryRepository() {
     async getBookingByReference(reference) {
       const id = bookingsByReference.get(reference); const value = bookings.get(id);
       if (!value) missing('Booking'); return value;
+    },
+
+    async listBookingsForUser(userId) {
+      return [...bookings.values()].filter((booking) => booking.userId === userId);
     },
 
     async updateBooking(booking) { if (!bookings.has(booking.id)) missing('Booking');

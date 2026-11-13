@@ -28,7 +28,7 @@ function eventCard(event) {
 
 async function renderEvents() {
   eventList.setAttribute('aria-busy', 'true');
-  resultCount.textContent = '';
+  resultCount.textContent = 'Loading events…';
   try {
     const maxPrice = form.elements.maxPrice.value;
     const criteria = {
