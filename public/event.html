@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5f2eb">
+    <title>Event details | Gather</title>
+    <link rel="stylesheet" href="./css/styles.css">
+    <script type="module" src="./js/pages/event.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="./index.html" aria-label="Gather home">gather<span>.</span></a>
+      <nav aria-label="Main navigation">
+        <a href="./index.html">Explore</a>
+      </nav>
+    </header>
+    <main class="event-main">
+      <a class="back-link" href="./index.html">← Back to events</a>
+      <div id="event-detail" aria-live="polite" aria-busy="true"></div>
+      <section class="checkout-section" id="checkout" aria-labelledby="checkout-heading" hidden>
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Almost there</p>
+            <h2 id="checkout-heading">Checkout</h2>
+          </div>
+        </div>
+        <div id="checkout-content"></div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <a class="brand" href="./index.html">gather<span>.</span></a>
+      <p>Make room for a good time.</p>
+    </footer>
+  </body>
+</html>
