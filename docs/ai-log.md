@@ -48,3 +48,10 @@ Every time you give an AI tool a significant prompt, add an entry. Three lines e
 - **What came back:** The booking service reserves seats through `reserveTierSeats`, using the conditional atomic SQLite update `UPDATE ticket_tiers SET sold = sold + ? WHERE id = ? AND sold + ? <= capacity`. The demo now reports 1 concurrent success, 49 `SOLD_OUT` responses, and 2/2 seats sold including the initial booking; the new regression test verifies the one-seat case, and all 31 tests pass.
 
 - **What was wrong (or "nothing"):** The first version of the updated demo used `Promise.all`, which would reject as soon as a request failed with `SOLD_OUT` instead of reporting the full batch. I changed it to `Promise.allSettled` and explicitly counted unexpected errors. A lock variable is process-local and cannot coordinate other database writers; checking twice still leaves a race between the availability check and the write, so the condition belongs in one atomic database update.
+
+## Build 6
+
+### Prompt 1: Build 6 prompt (docs/build-6.md)
+- **What I asked:** Build the mock-data event browser and checkout in plain HTML, CSS, and browser JavaScript modules, including filters, sold-out tiers, a hold countdown, and retryable mock payments.
+- **What came back:** Two pages, a safe DOM helper, mock API and data modules, responsive styles, and tests for browse, booking, and payment behavior.
+- **What was wrong (or "nothing"):** The first API draft imported the existing search module from outside `public/`; the static server correctly does not serve that path. I moved the needed filtering and sorting into the browser API module and verified the complete flow in the browser, including a declined payment retry. The hold duration was not specified, so I used a 10-minute mock hold.
